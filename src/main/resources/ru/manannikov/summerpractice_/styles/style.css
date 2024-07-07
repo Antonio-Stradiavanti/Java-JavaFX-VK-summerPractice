@@ -1,0 +1,22 @@
+.bar-chart-container {
+    -fx-background-color: cornsilk;
+}
+
+.bar-chart {
+    -fx-category-gap: 5px;
+}
+
+.chart-bar.default-color0 {
+    -fx-bar-fill: darkgreen;
+}
+
+.axis-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;    
+}
+
+.chart-description {
+    -fx-font-size: 12pt;
+    -fx-label-padding: 24px;
+    -fx-wrap-text: true;
+}
