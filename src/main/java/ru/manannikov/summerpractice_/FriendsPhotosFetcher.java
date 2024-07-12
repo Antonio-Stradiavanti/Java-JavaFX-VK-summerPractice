@@ -1,5 +1,6 @@
 package ru.manannikov.summerpractice_;
 
+import com.vk.api.sdk.client.Lang;
 import com.vk.api.sdk.client.TransportClient;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.ServiceActor;
@@ -11,6 +12,7 @@ import com.vk.api.sdk.objects.friends.GetOrder;
 import com.vk.api.sdk.objects.photos.Photo;
 import com.vk.api.sdk.objects.users.Fields;
 import com.vk.api.sdk.objects.users.UserMin;
+import com.vk.api.sdk.objects.users.responses.GetResponse;
 import javafx.concurrent.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 // Все запросы отправляю с помощью сервисного ключа, то есть через ServiceActor.
-public class FriendsPhotosFetcher extends Task<FetchedDataModel> {
+public class FriendsPhotosFetcher extends Task<TargetUserModel> {
     private static final Logger LOG = LoggerFactory.getLogger(FriendsPhotosFetcher.class);
 
     private final int MAX_REQUESTS_PER_SECOND = 5;
@@ -36,7 +38,7 @@ public class FriendsPhotosFetcher extends Task<FetchedDataModel> {
     private final ServiceActor serviceActor;
 
     private final String screenName;
-    private final FetchedDataModel model;
+    private final TargetUserModel model;
 
     // Конструктор
     public FriendsPhotosFetcher(Integer appId, String serviceToken, String screenName) {
@@ -45,46 +47,34 @@ public class FriendsPhotosFetcher extends Task<FetchedDataModel> {
         serviceActor = new ServiceActor(appId, serviceToken);
 
         this.screenName = screenName;
-        model = new FetchedDataModel();
+
+        model = new TargetUserModel();
     }
 
     private void fetchUser() throws ApiException, ClientException {
         // Теперь get возвращает builder
         // GetResponse = User, Пользователь, мне нужен первый из списка пользователей.
-       com.vk.api.sdk.objects.users.responses.GetResponse usersResponse = vkApiClient.users().get(serviceActor).userIds(screenName).execute().getFirst();
+       com.vk.api.sdk.objects.users.responses.GetResponse usersResponse = vkApiClient.users().get(serviceActor)
+               .lang(Lang.RU)
+               .userIds(screenName)
+               .execute().getFirst();
 
-        UserMin user = new UserMin();
-        user.setId(usersResponse.getId());
-        user.setFirstName(usersResponse.getFirstName());
-        user.setLastName(usersResponse.getLastName());
-
-        model.setUser(user);
-    }
-
-    private void fetchFriendProfiles() throws ApiException, ClientException {
-        updateMessage("Получаем список профилей ваших друзей ...");
-
-        List<com.vk.api.sdk.objects.users.responses.GetResponse> friendProfilesResponse = vkApiClient.users().get(serviceActor)
-            .userIds(model.getFriendIds().stream().map(String::valueOf).toList())
-            .fields(Fields.SCREEN_NAME, Fields.PHOTO_200)
-            .execute();
-
-        for (int i = 0; i < model.getFriendIds().size(); i++) {
-            model.getFriendsProfiles().put(
-                    model.getFriendIds().get(i),
-                    Mapper.mapUserFullToFriendModel(friendProfilesResponse.get(i))
-            );
-        }
-
+        model.setId(usersResponse.getId());
+        model.setFirstName(usersResponse.getFirstName());
+        model.setLastName(usersResponse.getLastName());
     }
 
     private void fetchFriendIds() throws Exception {
         try {
             updateMessage("Получаем список ваших друзей ...");
 
-            com.vk.api.sdk.objects.friends.responses.GetResponse friendsResponse = vkApiClient.friends().get(serviceActor).userId(model.getUser().getId()).order(GetOrder.NAME).execute();
+            com.vk.api.sdk.objects.friends.responses.GetResponse friendIdsResponse = vkApiClient.friends().get(serviceActor)
+                    .userId(model.getId())
+                    // Пользователи отсортированы в алфавитном порядке
+                    .order(GetOrder.NAME)
+                    .execute();
 
-            model.setFriendIds(friendsResponse.getItems());
+            model.getFriendIds().addAll(friendIdsResponse.getItems());
         } catch (ApiExtendedException e) {
             throw new Exception("У вас закрытый профиль, невозможно получить фотографии ваших друзей.");
         }
@@ -93,7 +83,12 @@ public class FriendsPhotosFetcher extends Task<FetchedDataModel> {
     private List<Photo> fetchFriendPhotos(Long userId) throws ApiException, ClientException {
         // rev -> антихронологический порядок -- самый первый элемент списка -- текущая аватарка, последняя опубликованная фотка.
         try {
-            com.vk.api.sdk.objects.photos.responses.GetResponse photoResponse = vkApiClient.photos().get(serviceActor).ownerId(userId).albumId("wall").rev(true).execute();
+            com.vk.api.sdk.objects.photos.responses.GetResponse photoResponse = vkApiClient.photos().get(serviceActor)
+                    .lang(Lang.RU)
+                    .ownerId(userId)
+                    .albumId("wall")
+                    .rev(true)
+                    .execute();
 
             return photoResponse.getItems();
         } catch (ApiExtendedException e) {
@@ -102,51 +97,43 @@ public class FriendsPhotosFetcher extends Task<FetchedDataModel> {
         }
     }
 
-    private LocalDateTime unixTimeToLocalDateTime(Long unixTime) {
-        Instant instant = Instant.ofEpochSecond(unixTime);
-        return LocalDateTime.ofInstant(instant, ZoneId.of("Europe/Moscow"));
-    }
+    // TODO, пофиксить метод
+    private void fetchFriendProfiles() throws ApiException, ClientException {
 
-    private Map<YearMonth, Integer> createFriendPhotosNumberByYearMonth(List<Photo> friendPhotos) {
-        Map<YearMonth, Integer> friendPhotosNumberByYearMonth = new HashMap<>();
+        List<com.vk.api.sdk.objects.users.responses.GetResponse> friendProfilesResponse = vkApiClient.users().get(serviceActor)
+                .lang(Lang.RU)
+                .userIds(model.getFriendIds().stream().map(String::valueOf).toList())
+                .fields(Fields.SCREEN_NAME, Fields.PHOTO_50)
+                .execute();
 
-        friendPhotos.forEach(photo -> {
-            YearMonth yearMonth = YearMonth.from(
-                    unixTimeToLocalDateTime(Long.valueOf(photo.getDate()))
-            );
-            friendPhotosNumberByYearMonth.merge(yearMonth, 1, Integer::sum);
-        });
-
-        return friendPhotosNumberByYearMonth;
-    }
-
-    private void fetchFriendsPhotos() throws ApiException, ClientException {
         try {
-            int friendIdsCount = model.getFriendIds().size();
-            for (int i = 0; i < friendIdsCount; ++i) {
-                Long friendId = model.getFriendIds().get(i);
+            // Тут можно использовать только такой цикл.
+            int friendsNumber = model.getFriendIds().size();
+            for (int i = 0; i < friendsNumber; i++) {
+                // Надо получить фотки
+                List<Photo> friendWallPhotos = fetchFriendPhotos(model.getFriendIds().get(i));
+                // Если у друга нет фоток или у него закрытый профиль, то я его не добавляю в модель.
+                if (!friendWallPhotos.isEmpty()) {
+                    FriendModel friend = Mapper.mapUserFullToFriendModel(friendProfilesResponse.get(i), friendWallPhotos);
+                    model.getFriendProfiles().put(
+                            // Полученный от API список ключей позволяет выводить пользователей в алфавитном порядке их ФИ.
+                            model.getFriendIds().get(i),
+                            friend
+                    );
+                }
 
-                // Получаем фотографии друга
-                List<Photo> friendPhotos = fetchFriendPhotos(friendId);
-
-                model.getFriendsPhotos().put(friendId, friendPhotos);
-
-                // Для каждого друга получаем информацию о количестве фотографий в определенный месяц/год
-                // Если список фотографий был пустой, то пустым будет и соотв. словарь
-                model.getFriendsPhotosNumberByYearMonth().put(friendId, createFriendPhotosNumberByYearMonth(friendPhotos));
-
-                updateMessage(String.format("Получаем фотографии ваших друзей ... получены фотографии %d из %d друзей.", i, friendIdsCount));
+                updateMessage(String.format("Получаем профили ваших друзей и собираем информацию об опубликованных ими фотографиях ... получены данные %d из %d друзей.", i, friendsNumber));
                 // !!! Несколько запросов, нужно ограничить количество запросов до 5 в секунду
                 Thread.sleep(SLEEP_TIME_MS);
             }
         } catch (InterruptedException e) {
-//            LOG.info("Завершаю выполнение потока ... {}", Thread.currentThread());
             Thread.currentThread().interrupt();
         }
+
     }
 
     @Override
-    protected FetchedDataModel call() throws Exception {
+    protected TargetUserModel call() throws Exception {
         // например: 364320788 -- я, или 820016119 -- бро
         updateMessage("Выполняем запрос ...");
         if (screenName.isEmpty()) {
@@ -159,7 +146,6 @@ public class FriendsPhotosFetcher extends Task<FetchedDataModel> {
         // Получаем профили друзей
         fetchFriendProfiles();
         // Получаем фотографии друзей пользователя
-        fetchFriendsPhotos();
         // Позвращаем полученную модель
         return model;
     }

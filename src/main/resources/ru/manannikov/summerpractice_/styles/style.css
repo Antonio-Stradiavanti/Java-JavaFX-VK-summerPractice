@@ -1,22 +1,218 @@
-.bar-chart-container {
-    -fx-background-color: cornsilk;
+.root {
+    my-background-color: #F7FFF7;
+    
+    my-border-color: #B4B8AB;
+
+    my-dark-brand-color: darkslategray;
+    my-brand-color: #B7D6B4;
+    my-light-brand-color: #D1F5CE;
+
+    my-secondary-text-color: #677A7A;
+
+    -fx-background-color: my-background-color;
+
 }
 
-.bar-chart {
+.label {
+    -fx-font-family: "sans-serif";
+    -fx-font-size: 12pt;
+}
+
+#title {
+    -fx-font-size: 16pt;
+}
+
+.button, 
+.label {
+    -fx-text-fill: my-dark-brand-color;
+}
+
+.menu-bar,
+.text-field,
+.tab-pane.floating > .tab-content-area,
+.split-pane,
+.list-view,
+.list-cell,
+.bar-chart-container {
+    -fx-background-color: inherit;
+}
+
+.scroll-bar > .thumb {
+    -fx-background-color: my-brand-color;
+    -fx-background-radius: 12;
+}
+
+.scroll-bar:vertical:focused > .thumb,
+.scroll-bar:horizontal:focused > .thumb {
+    -fx-background-color: my-light-brand-color;
+}
+
+.scroll-pane .scroll-bar:vertical,
+.scroll-pane .scroll-bar:horizontal,
+.list-view > .virtual-flow > .scroll-bar:vertical,
+.list-view > .virtual-flow > .scroll-bar:horizontal {
+    -fx-background-color: null;
+    -fx-border-color: null;
+}
+
+.bar-chart-container {
+    -fx-spacing: 12;
+    -fx-padding: 12 0 18 0;
+}
+
+.bar-chart-container > .bar-chart {
     -fx-category-gap: 5px;
 }
 
-.chart-bar.default-color0 {
-    -fx-bar-fill: darkgreen;
+.bar-chart-container .chart-bar.default-color0 {
+    -fx-bar-fill: my-brand-color;
 }
 
-.axis-label {
-    -fx-font-size: 12px;
+.bar-chart-container .axis-label {
+    -fx-font-size: 16pt;
     -fx-font-weight: bold;    
 }
 
-.chart-description {
-    -fx-font-size: 12pt;
-    -fx-label-padding: 24px;
-    -fx-wrap-text: true;
+.bar-chart-container > .label {
+    -fx-font-size: 13pt;
+} 
+
+.list-view {
+    -fx-padding: 24;
+}
+
+.friend-list-cell {
+    -fx-padding: 12 8 12 8;
+
+    -fx-spacing: 18;   
+    
+    -fx-alignment: top-left;
+}
+
+.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background-color: my-light-brand-color;
+
+    -fx-background-radius: 18;
+}
+
+.friend-list-cell > .vbox {
+    -fx-spacing: 3;
+
+    -fx-alignment: top-left;
+} 
+
+.friend-list-cell .hyperlink {
+    -fx-underline: true;
+    -fx-font-size: 14pt;
+
+    -fx-text-fill: my-dark-brand-color;
+}
+
+.friend-list-cell .label {
+    -fx-font-size: 10pt;    
+    
+    -fx-padding: 0 0 0 5;
+
+    -fx-text-fill: my-secondary-text-color;
+}
+
+.split-pane .split-pane-divider {
+    -fx-background-color: null;   
+    
+    -fx-pref-width: 1;
+
+    -fx-border-width: 0 1.5 0 1.5;
+    -fx-border-radius: 4;  
+}
+
+.button {
+    -fx-background-color: my-brand-color;    
+    -fx-background-radius: 12;
+
+    -fx-padding: 4;
+}
+
+.button:hover,
+.button:pressed {
+    -fx-background-color: my-light-brand-color;    
+
+    -fx-background-radius: 16;
+}
+
+#main-button {
+    -fx-padding: 0 28 0 28;
+}
+
+#main-button,
+.text-field {
+    -fx-font-size: 13pt;
+}
+
+.text-field {
+    -fx-border-width: 0 0 2 0;    
+
+    -fx-text-fill: my-dark-brand-color;
+    -fx-prompt-text-fill: my-secondary-text-color;
+}
+
+.text-field:focused {
+    -fx-border-color: my-dark-brand-color;
+}
+
+.text-field,
+.split-pane,
+.split-pane .split-pane-divider,
+.flow-pane > .vbox {
+    -fx-border-color: my-border-color;
+}
+
+.flow-pane {
+    -fx-background-color: my-background-color; 
+}
+
+.split-pane,
+.flow-pane > .vbox {
+    -fx-border-width: 2;
+    -fx-border-radius: 6;  
+}
+
+.flow-pane {
+    -fx-padding: 24;    
+    -fx-vgap: 24;
+    -fx-hgap: 24;    
+}
+
+.flow-pane > .vbox {
+    -fx-background-color: null;
+
+    -fx-padding: 16 16 24 16;
+    -fx-spacing: 18;
+}
+
+.flow-pane > .vbox > .image-view {
+    -fx-cursor: hand;    
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: null;
+
+    -fx-padding: 9 24 18 24;
+    -fx-border-width: 0 1 0 0;
+    -fx-border-color: my-border-color;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-fx-text-fill: my-brand-color;
+    -font-size: 13pt;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: my-light-brand-color;
+
+    -fx-background-insets: 3 12 9 12;
+    -fx-background-radius: 8;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-font-weight: bold;
 }

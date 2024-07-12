@@ -1,38 +1,35 @@
 package ru.manannikov.summerpractice_;
 
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.geometry.Pos;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.CategoryAxis;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URL;
 import java.time.YearMonth;
-import java.time.format.TextStyle;
 import java.util.*;
 
 // Я буду передавать короткие имена в виде https://vk.com/senioravanti или @senioravanti;
 public class MainWindowController implements Initializable {
     private static final Logger LOG = LoggerFactory.getLogger(MainWindowController.class);
 
-    private Service<FetchedDataModel> friendsPhotosFetcherService = new Service<FetchedDataModel>() {
+    private final Service<TargetUserModel> friendsPhotosFetcherService = new Service<TargetUserModel>() {
         @Override
-        protected Task<FetchedDataModel> createTask() {
+        protected Task<TargetUserModel> createTask() {
             return new FriendsPhotosFetcher(
                     appId,
                     serviceToken,
@@ -40,115 +37,86 @@ public class MainWindowController implements Initializable {
             );
         }
     };
-    private FetchedDataModel model = null;
+    private TargetUserModel model = null;
 
     private Integer appId;
     private String serviceToken;
     private boolean onceStarted = false;
 
-    @FXML
-    public TextField screenName;
+    private VBox globalHistogram;
+    private HistogramController globalHistogramController;
+
+    private TabPane friendHistogramAndPhotos;
+    private FriendHistogramAndPhotosController friendHistogramAndPhotosController;
 
     @FXML
-    public Button sendRequest;
-
+    private TextField screenName;
     @FXML
-    public Button saveButton;
-
+    private Button sendRequest;
     @FXML
-    public Button serializeButton;
-
+    private Button saveButton;
     @FXML
-    public Button deserialiseButton;
-
+    private Button serializeButton;
     @FXML
-    public Button resetButton;
-
+    private Button deserialiseButton;
     @FXML
-    public Label title;
-
+    private Button resetButton;
     @FXML
-    public ListView leftPane;
-
+    private Label title;
     @FXML
-    public AnchorPane rightPane;
+    private ListView<FriendModel> leftPane;
+    @FXML
+    private HBox rightPane;
 
-    private VBox createBarChartContainer(String chartBarTitle) {
-        // Создаю график
-        /* TODO
+    private void populateListView() {
+        ObservableList<FriendModel> items = FXCollections.observableArrayList();
 
-        - [ ] Надо сделать так чтобы он полностью вписывался в anchorPane, то есть ужимался когда следует и т.п.
-            - [ ] Узнать больше про anchorPane
+        for (Long friendId : model.getFriendIds()) {
+            FriendModel friend = model.getFriendProfiles().get(friendId);
+            // В дальнейшем буду оперировать только индексами ListView
+            if (friend != null) {
+                items.add(friend);
+            }
+        }
 
-        - [ ] Перед вызовом этого метода надо убедиться, что фотки у друзей вообще есть ))
+        leftPane.setItems(items);
+    }
 
-        */
-        CategoryAxis xAxis = new CategoryAxis();
-        xAxis.setLabel("Год/Месяц");
+    private void updateRightPane(boolean isShouldMakeGlobalHistogramVisible) {
+        globalHistogram.setVisible(isShouldMakeGlobalHistogramVisible);
+        globalHistogram.setManaged(isShouldMakeGlobalHistogramVisible);
 
-        NumberAxis yAxis = new NumberAxis();
-        yAxis.setLabel("Количество фотографий");
-
-        XYChart.Series<String, Number> seria = new XYChart.Series<>();
-        // Сформировать данные, вылетает null pointer exception.
-        // Сначала сформируем Map, а потом ее преобразуем в XYChart.Data.
-        Map<YearMonth, Integer> maxFriendsPhotosNumberByYearMonth = model.findMaxFriendsPhotosNumberByYearMonth();
-        if (maxFriendsPhotosNumberByYearMonth.isEmpty()) throw new NoSuchElementException();
-
-        seria.getData().setAll(
-                Mapper.mapYearMonthIntegerMapToChartData(
-                        maxFriendsPhotosNumberByYearMonth
-                )
-        );
-
-        ObservableList< XYChart.Series<String, Number> > data = FXCollections.observableArrayList();
-        data.add(seria);
-
-        BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
-        barChart.setData(data);
-
-        barChart.setTitle(chartBarTitle);
-        barChart.setMaxWidth(Double.MAX_VALUE);
-        barChart.setMaxHeight(Double.MAX_VALUE);
-        barChart.setLegendVisible(false);
-
-        // Создаю Описание графика
-        Label description = new Label();
-        description.getStyleClass().add("chart-description");
-
-        Map.Entry<YearMonth, Integer> maxPhotosNumber = maxFriendsPhotosNumberByYearMonth.entrySet().stream().max(
-                Map.Entry.comparingByValue()
-        ).orElseThrow();
-        String month = maxPhotosNumber.getKey().getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("ru"));
-        description.setText("У пользователя " + model.getUser().getFirstName() + " " + model.getUser().getLastName() + " -> всего друзей n = " + model.getFriendIds().size() + ", друзья опубликовали больше всего фотографий c = " + maxPhotosNumber.getValue() + " в " + month.substring(0, month.length() - 1).concat("е") + " месяце " + maxPhotosNumber.getKey().getYear() + " го года.");
-        // Создаю контейнер
-        VBox barChartContainer = new VBox(12.0, barChart, description);
-        barChartContainer.setFillWidth(true);
-        barChartContainer.setAlignment(Pos.CENTER);
-
-        barChartContainer.getStyleClass().add("bar-chart-container");
-
-        VBox.setVgrow(barChart, Priority.ALWAYS);
-
-//        LOG.info(seria.getData().toString());
-        return barChartContainer;
+        friendHistogramAndPhotos.setVisible(!isShouldMakeGlobalHistogramVisible);
+        friendHistogramAndPhotos.setManaged(!isShouldMakeGlobalHistogramVisible);
     }
 
     // Отображаю полученные от API данные
-    private void loadFetchedData() {
-        try {
-            var barChartContainer = createBarChartContainer("Общее количество опубликованных вашими друзьями фотографий по годам и месяцам");
+    private void loadFetchedData() throws Exception {
 
-            AnchorPane.setBottomAnchor(barChartContainer, 0.0);
-            AnchorPane.setTopAnchor(barChartContainer, 0.0);
-            AnchorPane.setLeftAnchor(barChartContainer, 0.0);
-            AnchorPane.setRightAnchor(barChartContainer, 0.0);
-
-            rightPane.getChildren().add(barChartContainer);
-
-        } catch (NoSuchElementException e) {
-            title.setText("У ваших друзей отсутствуют фотографии, дальнейшая работа с полученными данными не имеет смысла, попробуйте загрузить данные другого пользователя.");
+        if (model.getFriendProfiles().isEmpty()) {
+            throw new Exception("Количество друзей: " + model.getFriendIds().size() + "; количество полученных профилей: " + model.getFriendProfiles());
         }
+
+        populateListView();
+
+        Map<YearMonth, Integer> maxFriendsPhotosNumberByYearMonth = Util.findMaxPhotosByYearMonthMap(model.getFriendProfiles());
+        globalHistogramController.populateHistogram(
+                maxFriendsPhotosNumberByYearMonth,
+
+                String.format("У пользователя %s %s всего друзей %d, у %d из них открытые профили и они опубликовали хотя бы одну фотографию. Ваши друзья опубликовали больше всего фотографий %s",
+                        model.getFirstName(),
+                        model.getLastName(),
+                        model.getFriendIds().size(),
+                        model.getFriendProfiles().size(),
+                        Mapper.mapMaxPhotosByYearMonthToString(Util.flattenPhotosNumberByYearMonthMapToMax(maxFriendsPhotosNumberByYearMonth))
+                ),
+//                "У пользователя " + model.getFirstName() + " " + model.getLastName() + " всего друзей " + model.getFriendIds().size() + " у " + model.getFriendProfiles().size() + " из них открытые профили и есть опубликованные фотографии. Ваши друзья опубликовали больше всего фотографий " + Mapper.mapMaxPhotosByYearMonthToString(Util.flattenPhotosNumberByYearMonthMapToMax(maxFriendsPhotosNumberByYearMonth)),
+
+                "Общая статистика опубликованных вашими друзьями фотографий по годам и месяцам"
+        );
+        // Показываем глобальную гистограмму
+        updateRightPane(true);
+
     }
 
     private void changeSendRequestButtonState(String titleText) {
@@ -159,14 +127,49 @@ public class MainWindowController implements Initializable {
         friendsPhotosFetcherService.reset();
     }
 
-    private void allowRequestToVkApi() {
+    private void selectionChanged(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+
+    }
+    // Следует вызывать только после того как модель была сериализована из файла или получена от vk API, то есть надо гарантировать, что model != null.
+    private void addSplitPaneEventHandlers() {
+        leftPane.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+            // Нажата клавиша ESC, нужно показать глобальную гистограмму
+            if (newValue.intValue() == -1) {
+                updateRightPane(true);
+            // Глобальная гистограмма уже отображена
+            } else {
+                if (oldValue.intValue() == -1) {
+                    // Скрываем глобальную гистограмму
+                    updateRightPane(false);
+                }
+                // В противном случае просто обновляю данные в tabPane
+                friendHistogramAndPhotosController.populateFriendHistogramAndPhotos(
+                        leftPane.getItems().get(newValue.intValue())
+                );
+            }
+        });
+        leftPane.setOnKeyPressed(keyEvent -> {
+            if (keyEvent.getCode().equals(KeyCode.ESCAPE)) {
+                leftPane.getSelectionModel().clearSelection();
+            }
+        });
+    }
+    // Обработчики нажатия на кнопки, которые не зависят от данных, таких как: загрузить из файла и т.п.
+    private void addCommonEventHandlers() {
+
+    }
+
+    // обработчики событий связанных с работой с vk API
+    private void addVkEventHandlers() {
 
         title.setText("Загрузите информацию о фотографиях своих друзей из файла, или отправьте запрос к vk API");
 
         sendRequest.setOnAction(e -> {
             if (onceStarted) {
+
                 friendsPhotosFetcherService.cancel();
             } else {
+
                 friendsPhotosFetcherService.start();
                 sendRequest.setText("Прервать выполнение запроса");
                 title.textProperty().bind(friendsPhotosFetcherService.messageProperty());
@@ -185,14 +188,62 @@ public class MainWindowController implements Initializable {
         });
 
         friendsPhotosFetcherService.setOnSucceeded(event -> {
+            TargetUserModel oldModelValue = model;
             model = friendsPhotosFetcherService.getValue();
+
             changeSendRequestButtonState("Задача успешно выполнена.");
-            loadFetchedData();
+
+            try {
+                loadFetchedData();
+                if (oldModelValue == null) addSplitPaneEventHandlers();
+            } catch (Exception error) {
+                model = null;
+                LOG.error("При обработке полученных от vk API данных произошла ошибка, см. " + error.toString());
+                title.setText("У ваших друзей отсутствуют фотографии, дальнейшая работа с полученными данными не имеет смысла, попробуйте загрузить данные другого пользователя.");
+            }
         });
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        try {
+            FXMLLoader globalHistogramLoader = new FXMLLoader(getClass().getResource("fxml/histogram.fxml"));
+            globalHistogram = globalHistogramLoader.load();
+            globalHistogramController = globalHistogramLoader.getController();
+
+            FXMLLoader friendHistogramAndPhotosLoader = new FXMLLoader(getClass().getResource("fxml/friend-histogram-and-photos.fxml"));
+            friendHistogramAndPhotos = friendHistogramAndPhotosLoader.load();
+            friendHistogramAndPhotosController = friendHistogramAndPhotosLoader.getController();
+
+        } catch (IOException error) {
+            LOG.error("При сериализации fxml файлов возникла ошибка, дальнейшая работа приложения невозможна, см.\n{}", error.toString());
+            return;
+        }
+
+        leftPane.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        leftPane.setCellFactory(
+                new Callback<ListView< FriendModel>, ListCell<FriendModel> >() {
+                    @Override
+                    public ListCell<FriendModel> call(ListView<FriendModel> param) {
+                        return new FriendListCell();
+                    }
+                }
+        );
+
+        rightPane.getChildren().addAll(globalHistogram, friendHistogramAndPhotos);
+
+        rightPane.setFillHeight(true);
+        HBox.setHgrow(globalHistogram, Priority.ALWAYS);
+        HBox.setHgrow(friendHistogramAndPhotos, Priority.ALWAYS);
+
+        globalHistogram.setVisible(false);
+        globalHistogram.setManaged(false);
+
+        friendHistogramAndPhotos.setVisible(false);
+        friendHistogramAndPhotos.setManaged(false);
+
+        addCommonEventHandlers();
 
         String resource = "secrets.properties";
         Properties p = new Properties();
@@ -206,9 +257,8 @@ public class MainWindowController implements Initializable {
             serviceToken = p.getProperty("vk.service-token");
 
             if (serviceToken == null) throw new IllegalArgumentException("В файле отсутствуют требуемые с-ва");
-
             // Обрабатываю результаты выполнения запроса к vk API
-            allowRequestToVkApi();
+            addVkEventHandlers();
 
         } catch (Exception e) {
             title.setText("Загрузите информацию о фотографиях своих друзей из файла");

@@ -1,6 +1,7 @@
 package ru.manannikov.summerpractice_;
 
 import javafx.application.Application;
+import javafx.application.HostServices;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -11,8 +12,15 @@ import java.io.IOException;
 
 public class SummerPracticeApplication extends Application {
 
+    private static SummerPracticeApplication application;
+
+    public static HostServices getHostService() {
+        return application.getHostServices();
+    }
+
     @Override
     public void start(Stage stage) throws IOException {
+        application = this;
         Logger logger = LoggerFactory.getLogger(SummerPracticeApplication.class);
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("fxml/main-window.fxml"));

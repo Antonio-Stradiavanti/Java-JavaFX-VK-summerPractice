@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.FlowPane?>
+
+<TabPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" styleClass="floating" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.manannikov.summerpractice_.FriendHistogramAndPhotosController">
+  <tabs>
+    <Tab text="Гистограмма">
+      <content>
+        <AnchorPane fx:id="histogramPane" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+      </content>
+    </Tab>
+    <Tab text="Фотографии">
+         <content>
+            <ScrollPane fitToWidth="true" prefHeight="200.0" prefWidth="200.0">
+               <content>
+                  <FlowPane fx:id="imagesPane" alignment="CENTER" prefHeight="374.0" prefWidth="600.0" styleClass="flow-pane" />
+               </content>
+            </ScrollPane>
+         </content>
+    </Tab>
+  </tabs>
+</TabPane>
