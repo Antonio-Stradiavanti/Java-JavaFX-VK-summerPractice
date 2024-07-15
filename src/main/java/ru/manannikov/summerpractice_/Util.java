@@ -18,8 +18,6 @@ import java.util.*;
 
 public class Util {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Util.class);
-
     private static final String parseExceptionMessage = "В сериализованном объекте \"%s\" отсутствуют необходимые для десериализации поля";
     public static final String INIT_WINDOW_TITLE = "ЛГТУ АСУ Летняя практика выполнил Мананников А. О. ПИ-22-2";
     public static final String INIT_FILE_NAME  = "без_названия";

@@ -121,9 +121,10 @@
     -fx-border-radius: 4;  
 }
 
-.button {
+.button,
+.toggle-button {
     -fx-background-color: my-brand-color;    
-    -fx-background-radius: 12;
+    -fx-background-radius: 8;
 
     -fx-padding: 4;
 }
@@ -132,7 +133,7 @@
 .button:pressed {
     -fx-background-color: my-light-brand-color;    
 
-    -fx-background-radius: 16;
+    -fx-background-radius: 12;
 }
 
 #main-button {
@@ -144,6 +145,17 @@
     -fx-font-size: 13pt;
 }
 
+#match-case-button:selected {
+    -fx-background-radius: 8;
+
+    -fx-padding: 3;
+
+    -fx-border-width: 2;
+    -fx-border-style: solid centered;
+    -fx-border-color: my-dark-brand-color;
+    -fx-border-radius: 8;
+}
+
 .text-field {
     -fx-border-width: 0 0 2 0;    
 
@@ -153,6 +165,14 @@
 
 .text-field:focused {
     -fx-border-color: my-dark-brand-color;
+}
+/* Пользовательский псевдокласс */
+.text-field:error {
+    -fx-background-color: #E3B5A4;
+
+    -fx-prompt-text-fill: #773344;
+
+    -fx-border-color: #773344;
 }
 
 .text-field,

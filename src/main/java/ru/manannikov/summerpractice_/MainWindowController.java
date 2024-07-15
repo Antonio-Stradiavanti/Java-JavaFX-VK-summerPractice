@@ -1,8 +1,7 @@
 package ru.manannikov.summerpractice_;
 
 import com.google.gson.JsonParseException;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import javafx.application.Platform;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
@@ -14,7 +13,6 @@ import javafx.scene.SnapshotResult;
 import javafx.scene.control.*;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -26,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.time.YearMonth;
 import java.util.*;
 
 // Я буду передавать короткие имена в виде https://vk.com/senioravanti или @senioravanti;
@@ -68,13 +65,9 @@ public class MainWindowController implements Initializable {
     private Integer appId;
     private String serviceToken;
     private boolean onceStarted = false;
-    // fxml
-    private VBox globalHistogram;
-    private HistogramController globalHistogramController;
 
-    private TabPane friendHistogramAndPhotos;
-    private FriendHistogramAndPhotosController friendHistogramAndPhotosController;
-
+    @FXML
+    private VBox container;
     // Операции с vk API
     @FXML
     private TextField screenName;
@@ -89,14 +82,6 @@ public class MainWindowController implements Initializable {
     private Button deserializeButton;
     @FXML
     private Button resetButton;
-    @FXML
-    private ToggleButton matchCaseButton;
-    @FXML
-    private TextField searchField;
-    @FXML
-    private HBox searchBox;
-    @FXML
-    private VBox leftPaneContainer;
     // Пункты меню
     @FXML
     private MenuItem deserializeAction;
@@ -113,56 +98,12 @@ public class MainWindowController implements Initializable {
     // Основные элементы управления
     @FXML
     private Label title;
-    @FXML
-    private ListView<FriendModel> leftPane;
-    @FXML
-    private HBox rightPane;
 
-    private void populateListView() {
-        ObservableList<FriendModel> items = FXCollections.observableArrayList();
-        for (Long friendId : model.getFriendIds()) {
-            FriendModel friend = model.getFriendProfiles().get(friendId);
-            // В дальнейшем буду оперировать только индексами ListView
-            if (friend != null) {
-                items.add(friend);
-            }
-        }
-        // Перезаписывает
-        leftPane.setItems(items);
-    }
+    private SplitPane splitPane;
+    private SplitPaneController splitPaneController;
 
-    private void updateRightPane(boolean isShouldMakeGlobalHistogramVisible) {
-        globalHistogram.setVisible(isShouldMakeGlobalHistogramVisible);
-        globalHistogram.setManaged(isShouldMakeGlobalHistogramVisible);
-
-        friendHistogramAndPhotos.setVisible(!isShouldMakeGlobalHistogramVisible);
-        friendHistogramAndPhotos.setManaged(!isShouldMakeGlobalHistogramVisible);
-    }
-
+    private boolean isSearchBoxVisible = false;
     // Отображаю полученные от API данные
-    private void loadFetchedData() {
-
-        populateListView();
-
-        Map<YearMonth, Integer> maxFriendsPhotosNumberByYearMonth = Util.findMaxPhotosByYearMonthMap(model.getFriendProfiles());
-        globalHistogramController.populateHistogram(
-                maxFriendsPhotosNumberByYearMonth,
-
-                String.format("У пользователя %s %s всего друзей %d, у %d из них открытые профили и они опубликовали хотя бы одну фотографию. Ваши друзья опубликовали больше всего фотографий %s",
-                        model.getFirstName(),
-                        model.getLastName(),
-                        model.getFriendIds().size(),
-                        model.getFriendProfiles().size(),
-                        Mapper.mapMaxPhotosByYearMonthToString(Util.flattenPhotosNumberByYearMonthMapToMax(maxFriendsPhotosNumberByYearMonth))
-                ),
-                "Общая статистика опубликованных вашими друзьями фотографий по годам и месяцам"
-        );
-        // Показываем глобальную гистограмму
-        leftPaneContainer.setVisible(true);
-        leftPaneContainer.setManaged(true);
-        updateRightPane(true);
-        toggleFileOperations(false);
-    }
 
     private void changeSendRequestButtonState(String titleText) {
         onceStarted = false;
@@ -170,32 +111,6 @@ public class MainWindowController implements Initializable {
         title.textProperty().unbind();
         title.setText(titleText);
         friendsPhotosFetcherService.reset();
-    }
-    // Следует вызывать только после того как модель была сериализована из файла или получена от vk API, то есть надо гарантировать, что model != null.
-    private void addSplitPaneEventHandlers() {
-
-        leftPane.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
-            // Нажата клавиша ESC, нужно показать глобальную гистограмму
-            if (newValue.intValue() == -1) {
-                updateRightPane(true);
-            // Глобальная гистограмма уже отображена
-            } else {
-                if (oldValue.intValue() == -1) {
-                    // Скрываем глобальную гистограмму
-                    updateRightPane(false);
-                }
-                // В противном случае просто обновляю данные в tabPane
-                friendHistogramAndPhotosController.populateFriendHistogramAndPhotos(
-                        leftPane.getItems().get(newValue.intValue())
-                );
-            }
-        });
-
-        leftPane.setOnKeyPressed(keyEvent -> {
-            if (keyEvent.getCode().equals(KeyCode.ESCAPE)) {
-                leftPane.getSelectionModel().clearSelection();
-            }
-        });
     }
 
     private void toggleFileOperations(boolean isDisabled) {
@@ -209,18 +124,6 @@ public class MainWindowController implements Initializable {
         saveAsAction.setDisable(isDisabled);
 
         exportChartBarAction.setDisable(isDisabled);
-    }
-
-    private void hideSplitPaneContent() {
-
-        leftPaneContainer.setVisible(false);
-        leftPaneContainer.setManaged(false);
-
-        globalHistogram.setVisible(false);
-        globalHistogram.setManaged(false);
-
-        friendHistogramAndPhotos.setVisible(false);
-        friendHistogramAndPhotos.setManaged(false);
     }
 
     private void onOpenFileAction(ActionEvent event) {
@@ -237,7 +140,8 @@ public class MainWindowController implements Initializable {
         try {
             model = Util.deserializeModel(file).orElseThrow();
             // Загружаем полученные данные
-            loadFetchedData();
+            splitPaneController.populateSplitPane(model);
+            toggleFileOperations(false);
             // Нужно обновить заголовок приложения
             curFile = file;
             isModelChanged = false;
@@ -290,7 +194,7 @@ public class MainWindowController implements Initializable {
         }
     }
 
-    private void onSaveAction(ActionEvent event) {
+    private void onSaveFileAction(ActionEvent event) {
         if (!isModelChanged) return;
 
         if (curFile != null) {
@@ -317,8 +221,9 @@ public class MainWindowController implements Initializable {
     }
 
     private void onResetAction(ActionEvent event) {
-        hideSplitPaneContent();
+        splitPaneController.updateContentVisibility(false);
         toggleFileOperations(true);
+        model = null;
 
         curFile = null;
         isModelChanged = false;
@@ -364,10 +269,10 @@ public class MainWindowController implements Initializable {
             return null;
         };
 
-        globalHistogram.snapshot(callback, null, null);
+        splitPaneController.takeGlobalHistogramSnapshot(callback);
     }
     // Обработчики нажатия на кнопки, которые не зависят от данных, таких как: загрузить из файла и т.п.
-    private void addFileOperationsEventHandlers() {
+    private void addCommonEventHandlers() {
         // Настройка fileDialog
         fileDialog.setInitialDirectory(new File(System.getProperty("user.home")));
         fileDialog.setInitialFileName(Util.INIT_FILE_NAME);
@@ -378,13 +283,20 @@ public class MainWindowController implements Initializable {
         serializeButton.setOnAction(this::onSaveFileAsAction);
         saveAsAction.setOnAction(this::onSaveFileAsAction);
 
-        saveButton.setOnAction(this::onSaveAction);
-        saveAction.setOnAction(this::onSaveAction);
+        saveButton.setOnAction(this::onSaveFileAction);
+        saveAction.setOnAction(this::onSaveFileAction);
 
         deserializeButton.setOnAction(this::onOpenFileAction);
         deserializeAction.setOnAction(this::onOpenFileAction);
 
         exportChartBarAction.setOnAction(this::onExportBarChartAction);
+
+        container.setOnKeyPressed(event -> {
+            if (event.isControlDown() && event.getCode().equals(KeyCode.F)) {
+                // Попробую через булево свойство.
+                splitPaneController.updateSearchBoxVisibilityOrChangeFocus(true);
+            }
+        });
     }
 
     // обработчики событий связанных с работой с vk API
@@ -406,12 +318,10 @@ public class MainWindowController implements Initializable {
         });
 
         friendsPhotosFetcherService.setOnCancelled(event -> {
-            model = null;
             changeSendRequestButtonState("Выполнение задачи прервано.");
         });
 
         friendsPhotosFetcherService.setOnFailed(event -> {
-            model = null;
             changeSendRequestButtonState("При выполнении запроса к vk API произошла ошибка. " + friendsPhotosFetcherService.getException());
         });
 
@@ -422,12 +332,14 @@ public class MainWindowController implements Initializable {
 
             if (model.getFriendProfiles().isEmpty()) {
                 title.setText("У ваших друзей отсутствуют фотографии, дальнейшая работа с полученными данными не имеет смысла, попробуйте загрузить данные другого пользователя.");
-                hideSplitPaneContent();
-                toggleFileOperations(true);
+                // Чтобы сборщик мусора удалил неиспользуемые данные.
+                model = null;
                 return;
             }
 
-            loadFetchedData();
+            splitPaneController.populateSplitPane(model);
+            toggleFileOperations(false);
+
             isModelChanged = true;
             stage.setTitle(
                 String.format("%s | *%s",
@@ -442,44 +354,23 @@ public class MainWindowController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
 
         try {
-            FXMLLoader globalHistogramLoader = new FXMLLoader(getClass().getResource("fxml/histogram.fxml"));
-            globalHistogram = globalHistogramLoader.load();
-            globalHistogramController = globalHistogramLoader.getController();
-
-            FXMLLoader friendHistogramAndPhotosLoader = new FXMLLoader(getClass().getResource("fxml/friend-histogram-and-photos.fxml"));
-            friendHistogramAndPhotos = friendHistogramAndPhotosLoader.load();
-            friendHistogramAndPhotosController = friendHistogramAndPhotosLoader.getController();
-
+            FXMLLoader splitPaneLoader = new FXMLLoader(getClass().getResource("fxml/split-pane.fxml"));
+            splitPane = splitPaneLoader.load();
+            splitPaneController = splitPaneLoader.getController();
         } catch (IOException error) {
-            LOG.error("При сериализации fxml файлов возникла ошибка, дальнейшая работа приложения невозможна, см.\n{}", error.toString());
-            return;
+            LOG.error("При сериализации fxml файлов возникла ошибка {}, дальнейшая работа приложения невозможна.", error.toString());
+            Platform.exit();
         }
 
-        leftPane.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        leftPane.setCellFactory(
-                new Callback<ListView< FriendModel>, ListCell<FriendModel> >() {
-                    @Override
-                    public ListCell<FriendModel> call(ListView<FriendModel> param) {
-                        return new FriendListCell();
-                    }
-                }
-        );
-
-        rightPane.getChildren().addAll(globalHistogram, friendHistogramAndPhotos);
-
-        rightPane.setFillHeight(true);
-        HBox.setHgrow(globalHistogram, Priority.ALWAYS);
-        HBox.setHgrow(friendHistogramAndPhotos, Priority.ALWAYS);
-
-        hideSplitPaneContent();
-        addSplitPaneEventHandlers();
-        addFileOperationsEventHandlers();
+        container.getChildren().add(splitPane);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
+        addCommonEventHandlers();
 
         String resource = "secrets.properties";
         Properties p = new Properties();
         // Оператор try с ресурсами, после выхода из блока try ресурс fin будет автоматически освобожден.
         try (
-                var fin = getClass().getResourceAsStream(resource)
+            var fin = getClass().getResourceAsStream(resource)
         ) {
             p.load(fin);
 

@@ -11,20 +11,12 @@ import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.friends.GetOrder;
 import com.vk.api.sdk.objects.photos.Photo;
 import com.vk.api.sdk.objects.users.Fields;
-import com.vk.api.sdk.objects.users.UserMin;
-import com.vk.api.sdk.objects.users.responses.GetResponse;
 import javafx.concurrent.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 // Все запросы отправляю с помощью сервисного ключа, то есть через ServiceActor.
 public class FriendsPhotosFetcher extends Task<TargetUserModel> {

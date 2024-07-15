@@ -24,7 +24,6 @@ public class SummerPracticeApplication extends Application {
         Logger logger = LoggerFactory.getLogger(SummerPracticeApplication.class);
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("fxml/main-window.fxml"));
-
         Parent root = loader.load();
 
         MainWindowController controller = loader.getController();
