@@ -9,8 +9,25 @@ public class TargetUserModel {
     private String firstName;
     private String lastName;
 
-    private final List<Long> friendIds = new ArrayList<>();
-    private final Map<Long, FriendModel> friendProfiles = new HashMap<>();
+    private List<Long> friendIds = new ArrayList<>();
+    private Map<Long, FriendModel> friendProfiles = new HashMap<>();
+
+    public TargetUserModel() {}
+
+    public TargetUserModel(
+            Long id,
+            String firstName,
+            String lastName,
+
+            List<Long> friendIds,
+            Map<Long, FriendModel> friendProfiles
+    ) {
+        this.firstName = firstName;
+        this.friendIds = friendIds;
+        this.friendProfiles = friendProfiles;
+        this.id = id;
+        this.lastName = lastName;
+    }
 
     public Long getId() {
         return id;

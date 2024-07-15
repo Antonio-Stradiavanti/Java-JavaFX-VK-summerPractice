@@ -77,10 +77,6 @@
     -fx-font-size: 13pt;
 } 
 
-.list-view {
-    -fx-padding: 24;
-}
-
 .friend-list-cell {
     -fx-padding: 12 8 12 8;
 

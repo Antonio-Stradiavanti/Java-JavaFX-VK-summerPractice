@@ -24,16 +24,18 @@ public class SummerPracticeApplication extends Application {
         Logger logger = LoggerFactory.getLogger(SummerPracticeApplication.class);
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("fxml/main-window.fxml"));
-        MainWindowController controller = loader.getController();
 
         Parent root = loader.load();
+
+        MainWindowController controller = loader.getController();
+        controller.setStage(stage);
+
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("styles/style.css").toExternalForm());
 
         // Настройка главного окна приложения
         stage.setScene(scene);
-        // Сделать чтобы заголовок менялся динамически при загрузке файла.
-        stage.setTitle("ЛГТУ АСУ Летняя практика выполнил Мананников А. О. ПИ-22-2 | ");
+        stage.setTitle(Util.INIT_WINDOW_TITLE);
 
         // Настройка главного окна приложения завершена.
         stage.show();

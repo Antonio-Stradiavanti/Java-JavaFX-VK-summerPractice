@@ -51,8 +51,11 @@ public class Mapper {
     public static PhotoModel mapVkPhotosToPhotoModel(Photo vkPhoto) {
         PhotoSizes photoSize = vkPhoto.getSizes().get(2);
 
+        double
+            w = photoSize.getWidth(),
+            h = photoSize.getHeight();
         double rw = 0.0, rh = 0.0;
-        if (photoSize.getHeight() > photoSize.getWidth()) {
+        if (h > w) {
             rw = Util.PHOTO_SIZE;
         } else {
             rh = Util.PHOTO_SIZE;
